@@ -1,7 +1,12 @@
-from aql import match, and_item, get_artifact_build
-from aql import aql
+try:
+    from aql import match, and_item, get_artifact_build
+    from aql import aql
+except:
+    from ArtifactoryRequest.aql import match, and_item, get_artifact_build
+    from ArtifactoryRequest.aql import aql
+
 import json
-from urllib import quote as encodeurl
+from requests.utils import requote_uri as encodeurl
 from collections import OrderedDict
 import requests
 class ArtifactoryRequest(object):
@@ -19,6 +24,19 @@ class ArtifactoryRequest(object):
             return False
         if self.build_info['name'] == self.build_name:
             return True
+    
+    def get_latest_build(self, num):
+        """Get last submitted build for build"""
+        if num == "latest" or num == '':
+            response = requests.get("{}/api/build/{}".format(self.server_url,
+                                                                encodeurl(self.build_name)))
+            json_dict = json.loads(response.text)
+            if "buildsNumbers" in json_dict:
+                return json_dict["buildsNumbers"][0]['uri'].replace("/", "")
+        else:
+            return num
+            
+
 
     def check_build_status(self, status="latest"):
         '''
@@ -62,8 +80,9 @@ class ArtifactoryRequest(object):
         query = OrderedDict()
         query = {"name":match(artifacts)}
         query.update(and_item(get_artifact_build(self.build_name, 
-                                                 self.build_num)))
+                                                 str(self.build_num))))
         aql_query = aql("items", query, self)
+        print(aql_query.response.text)
         json_dict = json.loads(aql_query.response.text)['results']
         print(json_dict)
         return json_dict
@@ -87,7 +106,7 @@ class ArtifactoryRequest(object):
         '''
         self.server_url = server_url
         self.build_name = build_name
-        self.build_num = build_num
+        self.build_num = str(self.get_latest_build(build_num))
         self.validate_build_object()
         self.token = token
         self.build_info = self.get_build_info()
