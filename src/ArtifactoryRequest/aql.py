@@ -100,5 +100,5 @@ class aql(object):
         '''
         url = "{}/api/search/aql".format(self.artireq.server_url)
         return requests.post(url, 
-                             headers={'Authorization': 'Bearer {}'.format(self.artireq.apikey)},
+                             headers={'Authorization': 'Bearer {}'.format(self.artireq.token)},
                              data=self.query)

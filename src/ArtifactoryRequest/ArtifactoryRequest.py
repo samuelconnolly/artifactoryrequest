@@ -78,18 +78,17 @@ class ArtifactoryRequest(object):
         json_dict = json.loads(response.text)
         return json_dict['buildInfo']
 
-    def __init__(self, server_url, build_name, apikey, user, build_num=''):
+    def __init__(self, server_url, build_name, token, build_num=''):
         '''
-        Init object with server_url and build object to be addressed
-        If build num undefined fetch latest build
-        Validate that build object exists before we get too far
+        server_url : your Artifactory server URL
+        build_name : build to be inspected
+        token : access token for API (not API key)
+        build_num: optional, todo: fetch latest if undefined
         '''
         self.server_url = server_url
-        #assert self.is_artifactory()
         self.build_name = build_name
         self.build_num = build_num
         self.validate_build_object()
-        self.apikey = apikey
-        self.user = user
+        self.token = token
         self.build_info = self.get_build_info()
     
