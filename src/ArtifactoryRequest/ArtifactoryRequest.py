@@ -77,15 +77,39 @@ class ArtifactoryRequest(object):
         fetch items specified in artifacts field
         Ex: *.rpm will fetch all rpms, name.* will fetch all name.*
         '''
+        fetch = True
+
         query = OrderedDict()
         query = {"name":match(artifacts)}
         query.update(and_item(get_artifact_build(self.build_name, 
-                                                 str(self.build_num))))
+                                                str(self.build_num))))
         aql_query = aql("items", query, self)
-        print(aql_query.response.text)
         json_dict = json.loads(aql_query.response.text)['results']
-        print(json_dict)
-        return json_dict
+        self.artifacts = json_dict
+
+        return fetch
+
+    def get_artifact_paths(self, artifacts=None):
+        '''
+        Return array of artifact paths
+        Input: Array defining artifacts wanted
+        '''
+        paths = []
+        if artifacts is None:
+            artifacts = []
+        for arti in artifacts:
+            for item in self.artifacts:
+                if item['name'] == arti:
+                    paths.append("{server_url}"
+                                 "/{repo}/"
+                                 "{path}/"
+                                 "{name}".format(server_url=self.server_url,
+                                                 repo=item['repo'],
+                                                 path=item['path'],
+                                                 name=item['name']))
+        return paths
+
+            
     
     def get_build_info(self):
         ''' 
@@ -110,4 +134,5 @@ class ArtifactoryRequest(object):
         self.validate_build_object()
         self.token = token
         self.build_info = self.get_build_info()
+        self.artifacts = {}
     
