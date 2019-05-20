@@ -1,5 +1,5 @@
-from collections import OrderedDict
-import requests
+from ArtifactoryRequest.ArtifactorySend import ArtifactorySend
+from ArtifactoryRequest.ArtifactorySend import ArtifactorySend
 ''' AQL Generators '''
 def and_item(value):
     ''' 
@@ -78,8 +78,8 @@ class aql(object):
         response - response['results'] from send() function, JSON object.
         '''
         self.domain = domain
-        self.query = self.form_query(query)
         self.artireq = artireq
+        self.query = self.form_query(query)
         self.response = self.send()
 
     def form_query(self, query):
@@ -99,6 +99,6 @@ class aql(object):
         Requires Auth key to use Artifactory endpoint
         '''
         url = "{}/api/search/aql".format(self.artireq.server_url)
-        return requests.post(url, 
-                             headers={'Authorization': 'Bearer {}'.format(self.artireq.token)},
-                             data=self.query)
+        send = ArtifactorySend(url, self.artireq, payload=self.query)
+        send.post()
+        return send.response

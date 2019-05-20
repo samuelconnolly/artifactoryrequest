@@ -1,14 +1,17 @@
 try:
     from aql import match, and_item, get_artifact_build
     from aql import aql
+    from ArtifactorySend import ArtifactorySend
 except:
     from ArtifactoryRequest.aql import match, and_item, get_artifact_build
     from ArtifactoryRequest.aql import aql
+    from ArtifactoryRequest.ArtifactorySend import ArtifactorySend
 
 import json
 from requests.utils import requote_uri as encodeurl
 from collections import OrderedDict
 import requests
+
 class ArtifactoryRequest(object):
     '''
     Artifactory Request library
@@ -19,24 +22,24 @@ class ArtifactoryRequest(object):
         '''
         Retrieve build info and handle failure case
         '''
-        response = self.get_build_info()
-        if response != 200:
-            return False
+        valid = False
+        self.get_build_info()
         if self.build_info['name'] == self.build_name:
-            return True
+            valid =  True
+        return valid
     
     def get_latest_build(self, num):
         """Get last submitted build for build"""
         if num == "latest" or num == '':
-            response = requests.get("{}/api/build/{}".format(self.server_url,
-                                                                encodeurl(self.build_name)))
-            json_dict = json.loads(response.text)
+            query = "{}/api/build/{}".format(self.server_url,
+                                             encodeurl(self.build_name))
+            request = ArtifactorySend(query, self)
+            request.get()
+            json_dict = json.loads(request.response.text)
             if "buildsNumbers" in json_dict:
                 return json_dict["buildsNumbers"][0]['uri'].replace("/", "")
         else:
             return num
-            
-
 
     def check_build_status(self, status="latest"):
         '''
@@ -71,6 +74,11 @@ class ArtifactoryRequest(object):
                     return {"status": cstatus, "timestamp":status['timestampDate']}
         return {}
 
+    def send_aql_query(self, domain, query):
+        aql_query = aql("items", query, self)
+        json_dict = json.loads(aql_query.response.text)['results']
+        self.artifacts = json_dict
+
     def get_artifacts(self, artifacts='*'):
         ''' 
         By default retrieve all artifacts, if artifacts is defined
@@ -83,9 +91,7 @@ class ArtifactoryRequest(object):
         query = {"name":match(artifacts)}
         query.update(and_item(get_artifact_build(self.build_name, 
                                                 str(self.build_num))))
-        aql_query = aql("items", query, self)
-        json_dict = json.loads(aql_query.response.text)['results']
-        self.artifacts = json_dict
+        self.send_aql_query("items", query)
 
         return fetch
 
@@ -109,30 +115,36 @@ class ArtifactoryRequest(object):
                                                  name=item['name']))
         return paths
 
-            
-    
+
     def get_build_info(self):
         ''' 
         Retrieve JSON build info
         '''
-        response = requests.get("{}/api/build/{}/{}".format(self.server_url,
-                                                        encodeurl(self.build_name),
-                                                        self.build_num))
-        json_dict = json.loads(response.text)
+        query = ("{}/api/build/{}/{}".format(self.server_url,
+                                             encodeurl(self.build_name),
+                                             self.build_num))
+        request = ArtifactorySend(query, self)
+        request.get()
+        json_dict = json.loads(request.response.text)
         return json_dict['buildInfo']
 
-    def __init__(self, server_url, build_name, token, build_num=''):
+    def __init__(self, server_url, build_name, build_num='',
+                 token=None, user=None, api_key=None):
         '''
         server_url : your Artifactory server URL
         build_name : build to be inspected
-        token : access token for API (not API key)
         build_num: optional, todo: fetch latest if undefined
+        token : access token for API (not API key)
+        user: user for API key
+        api_key: ...api key
         '''
         self.server_url = server_url
         self.build_name = build_name
+        self.token = token
+        self.user = user
+        self.api_key = api_key
+        self.artifacts = {}
         self.build_num = str(self.get_latest_build(build_num))
         self.validate_build_object()
-        self.token = token
         self.build_info = self.get_build_info()
-        self.artifacts = {}
-    
+
