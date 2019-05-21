@@ -87,10 +87,14 @@ class aql(object):
         Form query based around domain specified in AQL init
         Query object should be valid JSON, which is then wrapped into a payload
         '''
+        formatted = {}
         if self.domain == "items":
             formatted = "{}{}{}".format("items.find(", query, ")").replace("'", "\"")
-        else:
-            pass
+        elif self.domain == "builds":
+            formatted = "{}{}{}".format("builds.find(", query, ")").replace("'", "\"")
+        elif self.domain == "entries":
+            formatted = "{}{}{}".format("builds.find(", query, ")").replace("'", "\"")
+
         return formatted
 
     def send(self):
@@ -99,6 +103,6 @@ class aql(object):
         Requires Auth key to use Artifactory endpoint
         '''
         url = "{}/api/search/aql".format(self.artireq.server_url)
-        send = ArtifactorySend(url, self.artireq, payload=self.query)
+        send = ArtifactorySend(url, self.artireq, payload=self.query, json=False)
         send.post()
         return send.response

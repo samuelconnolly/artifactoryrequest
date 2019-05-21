@@ -15,6 +15,11 @@ class ArtifactorySend(object):
         self.payload = payload
         self.json = json
         self.auth = ArtiAuth(self.artireq).auth_obj
+        if self.json:
+            self.headers = {'Content-type': 'application/json'}
+        else:
+            self.headers = {}
+
     
     def validate_response(self, status):
         try:
@@ -36,20 +41,23 @@ class ArtifactorySend(object):
         self.validate_response(self.response.status_code)
 
     def post(self):
-        headers = {'Content-type': 'application/json'}
         if self.json:
             self.payload = json.dumps(self.payload)
-            print(self.payload)
         if isinstance(self.auth, dict):
-            headers.update(self.auth)
+            self.headers.update(self.auth)
             self.response = requests.post(self.query,
-                                          headers=headers,
+                                          headers=self.headers,
                                           data=self.payload)
         elif isinstance(self.auth, HTTPBasicAuth):
-            self.response = requests.post(self.query,
-                                          headers=headers,
-                                          auth=self.auth,
-                                          data=self.payload)
+            if self.headers != {}:
+                self.response = requests.post(self.query,
+                                headers=self.headers,
+                                auth=self.auth,
+                                data=self.payload)
+            else:
+                self.response = requests.post(self.query,
+                                              auth=self.auth,
+                                              data=self.payload)
             print(self.response.text)
         self.validate_response(self.response.status_code)
 
