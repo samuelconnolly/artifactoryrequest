@@ -1,5 +1,5 @@
 from ArtifactoryRequest.ArtifactorySend import ArtifactorySend
-from ArtifactoryRequest.ArtifactorySend import ArtifactorySend
+
 ''' AQL Generators '''
 def and_item(value):
     ''' 

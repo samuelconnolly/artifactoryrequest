@@ -65,13 +65,15 @@ class ArtifactoryRequest(object):
                 if status["timestampDate"] > latest_status["timestamp"]:
                     latest_status["timestamp"] = status["timestampDate"]
                     latest_status["status"] = status["status"]
+                    latest_status["repo"] = status["repository"]
         return latest_status
     
     def get_specific_status(self, cstatus):
         if "statuses" in self.build_info:
             for status in self.build_info['statuses']:
                 if status['status'] == cstatus:
-                    return {"status": cstatus, "timestamp":status['timestampDate']}
+                    return {"status": cstatus, "timestamp":status['timestampDate'],
+                            "repo":status['repository']}
         return {}
 
     def send_aql_query(self, domain, query):
@@ -128,6 +130,21 @@ class ArtifactoryRequest(object):
         json_dict = json.loads(request.response.text)
         return json_dict['buildInfo']
 
+    def promote_build(self, status, comment, target, dry_run=True):
+        cstatus = self.get_latest_status()
+        payload = { "status": status,
+                    "comment" : comment,
+                    "dryRun": dry_run,
+                    "sourceRepo": cstatus["repo"],
+                    "targetRepo" : target,
+                    "copy": True,
+                    "dependencies" : True,
+                    "failFast": True}
+        url = ("{}/api/build/promote/{}/{}".format(self.server_url,
+                                                   encodeurl(self.build_name),
+                                                   self.build_num))
+        ArtifactorySend(url, self, payload=payload).post()
+
     def __init__(self, server_url, build_name, build_num='',
                  token=None, user=None, api_key=None):
         '''
@@ -145,6 +162,7 @@ class ArtifactoryRequest(object):
         self.api_key = api_key
         self.artifacts = {}
         self.build_num = str(self.get_latest_build(build_num))
-        self.validate_build_object()
         self.build_info = self.get_build_info()
+        self.validate_build_object()
+        
 
